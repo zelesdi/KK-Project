@@ -1,0 +1,4 @@
+add_subdirectory(DeadArgumentElimination)
+add_subdirectory(DeadStoreElimination)
+add_subdirectory(InstructionCombining)
+add_subdirectory(StrengthReduction)
