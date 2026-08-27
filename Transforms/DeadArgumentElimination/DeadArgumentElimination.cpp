@@ -25,9 +25,31 @@ namespace {
       }
     }
 
+    Function *createNewFunction(Function &F)
+    {
+      Type *Ty = F.getType();
+
+      FunctionType *newFuncTy = FunctionType::get(Ty,
+                                                  argTypes,
+                                                  false);
+
+      Function *newFunc = Function::Create(
+        newFuncTy,
+        Function::ExternalLinkage,   // function can be seen outside the current module
+        "new_" + F.getName(),
+        F.getParent()
+        );
+
+      return newFunc;
+    }
+
+    void cloneFunctionBody(Function &F, Function *NewF) {}
+
     bool runOnFunction(Function &F) override {
 
       findDeadArguments(F);
+      Function *newFunction = createNewFunction(F);
+      cloneFunctionBody(F, newFunction);
 
       return false;
     }
