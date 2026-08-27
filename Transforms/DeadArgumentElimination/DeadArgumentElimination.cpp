@@ -7,10 +7,28 @@ using namespace llvm;
 
 namespace {
   struct DeadArgumentElimination : public FunctionPass {
+    std::vector<Type *> argTypes;
+
     static char ID;
     DeadArgumentElimination() : FunctionPass(ID) {}
 
+    void findDeadArguments(Function &F)
+    {
+      argTypes.clear();
+
+      for (Argument &Arg : F.args()) {
+        // .use_empty() returns true if Arg is dead
+        bool argIsDead = Arg.use_empty();
+        if (!argIsDead) {
+          argTypes.push_back(Arg.getType());
+        }
+      }
+    }
+
     bool runOnFunction(Function &F) override {
+
+      findDeadArguments(F);
+
       return false;
     }
   };
