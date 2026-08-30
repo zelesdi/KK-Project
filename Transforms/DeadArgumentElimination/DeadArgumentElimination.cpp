@@ -1,3 +1,5 @@
+#include <llvm/IR/Constants.h>
+
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
@@ -45,19 +47,19 @@ namespace {
       return newFunc;
     }
 
-    void mapBasicBlocks(Function &OldFunc, Function *NewFunc)
+    void mapBasicBlocks(Function &OldFunc, Function &NewFunc)
     {
       for (BasicBlock &BB : OldFunc) {
         BasicBlocksMap[&BB] =
-          BasicBlock::Create(OldFunc.getContext(),"", NewFunc);
+          BasicBlock::Create(OldFunc.getContext(),"", &NewFunc);
       }
     }
 
-    void mapVariables(Function &OldFunc, Function *NewFunc)
+    void mapVariables(Function &OldFunc, Function &NewFunc)
     {
-      Argument *NewArg = NewFunc->arg_begin();
+      Argument *NewArg = NewFunc.arg_begin();
       size_t i = 0;
-      for (Argument &OldArg : OldFunc->args()) {
+      for (Argument &OldArg : OldFunc.args()) {
         if (!ArgIsDead[i]) {
           VariablesMap[&OldArg] = NewArg;
           NewArg++;
@@ -66,7 +68,7 @@ namespace {
       }
     }
 
-    void cloneFunctionBody(Function &OldFunc, Function *NewFunc)
+    void cloneFunctionBody(Function &OldFunc, Function &NewFunc)
     {
       mapBasicBlocks(OldFunc, NewFunc);
       mapVariables(OldFunc, NewFunc);
@@ -104,6 +106,35 @@ namespace {
       }
     }
 
+    void updateOldFunctionCalls(Function &OldFunc, Function &NewFunc)
+    {
+      for (User *U : llvm::make_early_inc_range(OldFunc.users())) {
+        auto *Call = dyn_cast<CallInst>(U);
+        if (!Call || Call->getCalledFunction() != &OldFunc) {
+          continue;
+        }
+
+        std::vector<Value *> NewArgs;
+        for (unsigned i = 0; i < Call->arg_size(); i++) {
+          if (!ArgIsDead[i]) {
+            NewArgs.push_back(Call->getArgOperand(i));
+          }
+        }
+
+          CallInst *NewCall = CallInst::Create(&NewFunc, NewArgs, "", Call);
+          NewCall->setCallingConv(Call->getCallingConv());
+          Call->replaceAllUsesWith(NewCall);
+          Call->eraseFromParent();
+        }
+    }
+
+    void deleteOldFunctionCalls(Function &OldFunc, Function &NewFunc)
+    {
+      NewFunc.takeName(&OldFunc);
+      OldFunc.replaceAllUsesWith(UndefValue::get(OldFunc.getType()));
+      OldFunc.eraseFromParent();
+    }
+
     bool runOnFunction(Function &F) override {
       ArgTypes.clear();
       BasicBlocksMap.clear();
@@ -116,13 +147,15 @@ namespace {
         return false;
       }
 
-      Function *NewFunction = createNewFunction(F);
-      cloneFunctionBody(F, NewFunction);
+      Function *NewFunc = createNewFunction(F);
+      cloneFunctionBody(F, *NewFunc);
+      updateOldFunctionCalls(F, *NewFunc);
+      deleteOldFunctionCalls(F, *NewFunc);
 
-      return false;
+      return true;
     }
   };
 }
 
 char DeadArgumentElimination::ID = 0;
-static RegisterPass<DeadArgumentElimination> X("our-d-a-elim", "Simple Dead Argument Elimination Pass");
+static RegisterPass<DeadArgumentElimination> X("simple-dae", "Simple Dead Argument Elimination Pass");
