@@ -49,12 +49,12 @@ struct StrengthReduction : public FunctionPass {
     for (BasicBlock &BB : F) {
       IRBuilder<> Builder(BB.getContext());
 
-      for (Instruction &I : BB) {
+      for (auto &I : llvm::make_early_inc_range(BB)) {
         if (BinaryOperator *BinaryOp = dyn_cast<BinaryOperator>(&I)) {
           Value *LeftOperand = BinaryOp->getOperand(0);
           Value *RightOperand = BinaryOp->getOperand(1);
 
-          // --- MULTIPLICATION: a * 2^n → a << n ---
+          // a * 2^n -> a << n 
           if (I.getOpcode() == Instruction::Mul) {
             if (!isConstantInt(LeftOperand) && isConstantInt(RightOperand) &&
                 isPowerOfTwo(getConstIntValue(RightOperand))) {
@@ -76,7 +76,7 @@ struct StrengthReduction : public FunctionPass {
             }
           }
 
-          // --- UNSIGNED DIVISION: a / 2^n → a >> n ---
+          // a / 2^n -> a >> n 
           if (I.getOpcode() == Instruction::UDiv) {
             if (!isConstantInt(LeftOperand) && isConstantInt(RightOperand) &&
                 isPowerOfTwo(getConstUnsignedValue(RightOperand))) {
@@ -89,7 +89,7 @@ struct StrengthReduction : public FunctionPass {
             }
           }
 
-          // --- UNSIGNED REMAINDER: a % 2^n → a & (2^n - 1) ---
+          // a % 2^n -> a & (2^n - 1)
           if (I.getOpcode() == Instruction::URem) {
             if (!isConstantInt(LeftOperand) && isConstantInt(RightOperand) &&
                 isPowerOfTwo(getConstUnsignedValue(RightOperand))) {
