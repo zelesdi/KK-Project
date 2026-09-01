@@ -61,10 +61,11 @@ cd path/to/llvm-project/build
   -load ./build/lib/OurDAE.so \
   -load ./build/lib/LLVMInstructionCombining.so \
   -load ./build/lib/LLVMStrengthReduction.so \
+  -enable-new-pm=0 \
   -simple-dse \
   -simple-dae \
   -instruction-combining \
   -strength-reduction \
   example.ll \
-  -o output.ll
+  -S -o output.ll
 ```
