@@ -134,11 +134,11 @@ private:
                         CurAllLive = true;
                         continue;
                 }
-                if (!CurAllLive) {
-                    MemoryLocation Loc = MemoryLocation::get(SI);
-                    killMustAliased(CurLive, Loc, AA);
-                    }
-                    continue;
+                    if (!CurAllLive) {
+                        MemoryLocation Loc = MemoryLocation::get(SI);
+                        killMustAliased(CurLive, Loc, AA);
+                        }
+                        continue;
                 }
 
                 if (UnknownMemory(I)) {
