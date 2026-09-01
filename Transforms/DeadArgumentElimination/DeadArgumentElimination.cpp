@@ -13,7 +13,7 @@
 using namespace llvm;
 
 namespace {
-  // Module pass zato sto menjamo funkciju
+  // module pass because we are changing functions
   struct DeadArgumentElimination : public ModulePass {
     std::vector<bool> ArgIsDead;
     std::vector<Type *> ArgTypes;
@@ -26,7 +26,7 @@ namespace {
     void findDeadArguments(Function &F)
     {
       ArgIsDead.assign(F.arg_size(), false);
-      // Clear ArgTypes from the previous function
+      // clear ArgTypes from the previous function
       ArgTypes.clear();
 
       size_t i = 0;
@@ -42,7 +42,7 @@ namespace {
 
     Function *createNewFunction(Function &OldFunc)
     {
-      // Get return type from the old function
+      // get return type from the old function
       // int foo(int a) -> getFunctionType() = int (int)
       //                ->   getReturnType() = int
       Type *ReturnTy = OldFunc.getFunctionType()->getReturnType();
@@ -216,10 +216,6 @@ namespace {
     {
       bool Changed = false;
 
-      /*
-       * Save all functions first because processFunction()
-       * deletes functions from the module.
-       */
       // save all functions from the module
       std::vector<Function *> Functions;
 
