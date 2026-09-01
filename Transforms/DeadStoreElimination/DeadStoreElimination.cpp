@@ -107,7 +107,7 @@ private:
             }
 
             LiveOut[BB] = NewLiveOut;
-            AllLiveOut[BB] - NewAllLiveOut;
+            AllLiveOut[BB] = NewAllLiveOut;
 
             vector<MemoryLocation> CurLive = NewLiveOut;
             bool CurAllLive = NewAllLiveOut;
