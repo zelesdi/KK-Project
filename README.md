@@ -7,6 +7,8 @@ LLVM optimization project implementing the following passes:
 * Instruction Combining
 * Strength Reduction
 
+Dead Argument Elimination is designed to run after Dead Store Elimination.
+
 ## Setup
 
 Clone the repository:
@@ -52,7 +54,7 @@ To enable LLVM headers and autocomplete in CLion, set the `LLVM_SOURCE_DIR` CMak
 ```bash
 cd path/to/llvm-project/build
 
-./bin/clang -S -emit-llvm -O0 -Xclang -disable-O0-optnone 1.c -o 1.ll
+./bin/clang -S -emit-llvm -O0 -Xclang -disable-O0-optnone example.c -o example.ll
 
 ./bin/opt \
   -load ./build/lib/OurDSE.so \
@@ -63,6 +65,6 @@ cd path/to/llvm-project/build
   -simple-dae \
   -instruction-combining \
   -strength-reduction \
-  input.ll \
+  example.ll \
   -o output.ll
 ```
