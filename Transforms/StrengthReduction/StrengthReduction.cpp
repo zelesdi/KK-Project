@@ -1,3 +1,4 @@
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -8,108 +9,179 @@
 
 using namespace llvm;
 
-namespace {
+namespace
+{
 
 struct StrengthReduction : public FunctionPass {
-  static char ID;
-  StrengthReduction() : FunctionPass(ID) {}
+    static char ID;
 
-  bool isConstantInt(Value *Val) {
-    return isa<ConstantInt>(Val);
-  }
+    StrengthReduction() : FunctionPass(ID)
+    {}
 
-  int getConstIntValue(Value *Val) {
-    ConstantInt *CI = dyn_cast<ConstantInt>(Val);
-    return CI->getSExtValue();
-  }
-
-  unsigned getConstUnsignedValue(Value *Val) {
-    ConstantInt *CI = dyn_cast<ConstantInt>(Val);
-    return CI->getZExtValue();
-  }
-
-  bool isPowerOfTwo(int x) {
-    return x > 0 && (x & (x - 1)) == 0;
-  }
-
-  int powerOfTwo(int x) {
-    int power = 0;
-
-    while (x > 1) {
-      x >>= 1;
-      power++;
+    bool isConstantInt(Value* Val)
+    {
+        return isa<ConstantInt>(Val);
     }
 
-    return power;
-  }
+    int getConstIntValue(Value* Val)
+    {
+        ConstantInt* CI = dyn_cast<ConstantInt>(Val);
+        return CI->getSExtValue();
+    }
 
-  bool runOnFunction(Function &F) override {
-    bool Changed = false;
+    unsigned getConstUnsignedValue(Value* Val)
+    {
+        ConstantInt* CI = dyn_cast<ConstantInt>(Val);
+        return CI->getZExtValue();
+    }
 
-    for (BasicBlock &BB : F) {
-      IRBuilder<> Builder(BB.getContext());
+    bool isPowerOfTwo(int x)
+    {
+        return x > 0 && (x & (x - 1)) == 0;
+    }
 
-      for (auto &I : llvm::make_early_inc_range(BB)) {
-        if (BinaryOperator *BinaryOp = dyn_cast<BinaryOperator>(&I)) {
-          Value *LeftOperand = BinaryOp->getOperand(0);
-          Value *RightOperand = BinaryOp->getOperand(1);
-
-          // a * 2^n -> a << n 
-          if (I.getOpcode() == Instruction::Mul) {
-            if (!isConstantInt(LeftOperand) && isConstantInt(RightOperand) &&
-                isPowerOfTwo(getConstIntValue(RightOperand))) {
-              int Power = powerOfTwo(getConstIntValue(RightOperand));
-              Instruction *LeftShift = (Instruction *) Builder.CreateShl(LeftOperand, Power);
-              LeftShift->insertAfter(&I);
-              I.replaceAllUsesWith(LeftShift);
-              I.eraseFromParent();
-              Changed = true;
-            }
-            else if (isConstantInt(LeftOperand) && isPowerOfTwo(getConstIntValue(LeftOperand)) &&
-                     !isConstantInt(RightOperand)) {
-              int Power = powerOfTwo(getConstIntValue(LeftOperand));
-              Instruction *LeftShift = (Instruction *) Builder.CreateShl(RightOperand, Power);
-              LeftShift->insertAfter(&I);
-              I.replaceAllUsesWith(LeftShift);
-              I.eraseFromParent();
-              Changed = true;
-            }
-          }
-
-          // a / 2^n -> a >> n 
-          if (I.getOpcode() == Instruction::UDiv) {
-            if (!isConstantInt(LeftOperand) && isConstantInt(RightOperand) &&
-                isPowerOfTwo(getConstUnsignedValue(RightOperand))) {
-              int Power = powerOfTwo(getConstIntValue(RightOperand));
-              Instruction *RightShift = (Instruction *) Builder.CreateLShr(LeftOperand, Power);
-              RightShift->insertAfter(&I);
-              I.replaceAllUsesWith(RightShift);
-              I.eraseFromParent();
-              Changed = true;
-            }
-          }
-
-          // a % 2^n -> a & (2^n - 1)
-          if (I.getOpcode() == Instruction::URem) {
-            if (!isConstantInt(LeftOperand) && isConstantInt(RightOperand) &&
-                isPowerOfTwo(getConstUnsignedValue(RightOperand))) {
-              int constant = getConstUnsignedValue(RightOperand);
-              Instruction *And = (Instruction *) Builder.CreateAnd(LeftOperand, constant - 1);
-              And->insertAfter(&I);
-              I.replaceAllUsesWith(And);
-              I.eraseFromParent();
-              Changed = true;
-            }
-          }
+    int powerOfTwo(int x)
+    {
+        int power = 0;
+        while(x > 1) {
+            x >>= 1;
+            power++;
         }
-      }
+        return power;
     }
 
-    return Changed;
-  }
-};
+    bool runOnFunction(Function& F) override
+    {
+        bool Changed = false;
 
-} // end anonymous namespace
+        for(BasicBlock& BB : F) {
+            for(auto& I : llvm::make_early_inc_range(BB)) {
+                auto* BinaryOp = dyn_cast<BinaryOperator>(&I);
+                if(!BinaryOp)
+                    continue;
+
+                IRBuilder<> Builder(&I);
+
+                Value* LHS = BinaryOp->getOperand(0);
+                Value* RHS = BinaryOp->getOperand(1);
+
+                // --- mul ---
+                if(I.getOpcode() == Instruction::Mul) {
+                    // a * 2^n -> a << n
+                    if(!isConstantInt(LHS) &&
+                        isConstantInt(RHS) &&
+                        isPowerOfTwo(getConstIntValue(RHS))) {
+                        int Power = powerOfTwo(getConstIntValue(RHS));
+                        Value* Shift = Builder.CreateShl(LHS, Power);
+                        I.replaceAllUsesWith(Shift);
+                        I.eraseFromParent();
+                        Changed = true;
+                        continue;
+                    }
+
+                    // 2^n * a -> a << n
+                    if(isConstantInt(LHS) &&
+                        !isConstantInt(RHS) &&
+                        isPowerOfTwo(getConstIntValue(LHS))) {
+                        int Power = powerOfTwo(getConstIntValue(LHS));
+                        Value* Shift = Builder.CreateShl(RHS, Power);
+                        I.replaceAllUsesWith(Shift);
+                        I.eraseFromParent();
+                        Changed = true;
+                        continue;
+                    }
+
+                    // a * (2^n + 1) -> (a << n) + a
+                    if(!isConstantInt(LHS) &&
+                        isConstantInt(RHS) &&
+                        isPowerOfTwo(getConstIntValue(RHS) - 1)) {
+                        int n = powerOfTwo(getConstIntValue(RHS) - 1);
+                        Value* Shift = Builder.CreateShl(LHS, n);
+                        Value* Add = Builder.CreateAdd(Shift, LHS);
+                        I.replaceAllUsesWith(Add);
+                        I.eraseFromParent();
+                        Changed = true;
+                        continue;
+                    }
+
+                    // (2^n + 1) * a -> (a << n) + a
+                    if(isConstantInt(LHS) &&
+                        !isConstantInt(RHS) &&
+                        isPowerOfTwo(getConstIntValue(LHS) - 1)) {
+                        int n = powerOfTwo(getConstIntValue(LHS) - 1);
+                        Value* Shift = Builder.CreateShl(RHS, n);
+                        Value* Add = Builder.CreateAdd(Shift, RHS);
+                        I.replaceAllUsesWith(Add);
+                        I.eraseFromParent();
+                        Changed = true;
+                        continue;
+                    }
+
+                    // a * (2^n - 1) -> (a << n) - a
+                    if(!isConstantInt(LHS) &&
+                        isConstantInt(RHS) &&
+                        isPowerOfTwo(getConstIntValue(RHS) + 1)) {
+                        int n = powerOfTwo(getConstIntValue(RHS) + 1);
+                        Value* Shift = Builder.CreateShl(LHS, n);
+                        Value* Sub = Builder.CreateSub(Shift, LHS);
+                        I.replaceAllUsesWith(Sub);
+                        I.eraseFromParent();
+                        Changed = true;
+                        continue;
+                    }
+
+                    // (2^n - 1) * a -> (a << n) - a
+                    if(isConstantInt(LHS) &&
+                        !isConstantInt(RHS) &&
+                        isPowerOfTwo(getConstIntValue(LHS) + 1)) {
+                        int n = powerOfTwo(getConstIntValue(LHS) + 1);
+                        Value* Shift = Builder.CreateShl(RHS, n);
+                        Value* Sub = Builder.CreateSub(Shift, RHS);
+                        I.replaceAllUsesWith(Sub);
+                        I.eraseFromParent();
+                        Changed = true;
+                        continue;
+                    }
+                    continue;
+                }
+
+                // --- udiv ---
+                if(I.getOpcode() == Instruction::UDiv) {
+                    // a / 2^n -> a >> n
+                    if(!isConstantInt(LHS) &&
+                        isConstantInt(RHS) &&
+                        isPowerOfTwo(getConstUnsignedValue(RHS))) {
+                        int Power = powerOfTwo(getConstIntValue(RHS));
+                        Value* Shift = Builder.CreateLShr(LHS, Power);
+                        I.replaceAllUsesWith(Shift);
+                        I.eraseFromParent();
+                        Changed = true;
+                    }
+                    continue;
+                }
+
+                // --- urem ---
+                if(I.getOpcode() == Instruction::URem) {
+                    // a % 2^n -> a & (2^n - 1)
+                    if(!isConstantInt(LHS) &&
+                        isConstantInt(RHS) &&
+                        isPowerOfTwo(getConstUnsignedValue(RHS))) {
+                        int constant = getConstUnsignedValue(RHS);
+                        Value* And = Builder.CreateAnd(LHS, constant - 1);
+                        I.replaceAllUsesWith(And);
+                        I.eraseFromParent();
+                        Changed = true;
+                    }
+                    continue;
+                }
+            }
+        }
+
+        return Changed;
+    }
+};
 
 char StrengthReduction::ID = 0;
 static RegisterPass<StrengthReduction> X("our-s-r", "Strength Reduction Pass");
+
+}  // end anonymous namespace
