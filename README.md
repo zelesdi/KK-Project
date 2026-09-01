@@ -14,7 +14,7 @@ Dead Argument Elimination is designed to run after Dead Store Elimination.
 Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/zelesdi/KK-Project
 cd KK-Project
 ```
 
