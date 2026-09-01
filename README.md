@@ -50,13 +50,17 @@ To enable LLVM headers and autocomplete in CLion, set the `LLVM_SOURCE_DIR` CMak
 ## Run Passes
 
 ```bash
-./build/bin/opt \
-  -load ./build/lib/LLVMDeadArgumentElimination.so \
-  -load ./build/lib/LLVMDeadStoreElimination.so \
+cd path/to/llvm-project/build
+
+./bin/clang -S -emit-llvm -O0 -Xclang -disable-O0-optnone 1.c -o 1.ll
+
+./bin/opt \
+  -load ./build/lib/OurDSE.so \
+  -load ./build/lib/OurDAE.so \
   -load ./build/lib/LLVMInstructionCombining.so \
   -load ./build/lib/LLVMStrengthReduction.so \
-  -dead-argument-elimination \
-  -dead-store-elimination \
+  -simple-dse \
+  -simple-dae \
   -instruction-combining \
   -strength-reduction \
   input.ll \
