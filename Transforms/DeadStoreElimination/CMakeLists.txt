@@ -1,6 +1,8 @@
 add_llvm_library(OurDSE MODULE BUILDTREE_ONLY
-        DeadStoreElimination.cpp
+    DeadStoreElimination.cpp
 
-        PLUGIN_TOOL
-        opt
+    DEPENDS
+    intrinsics_gen
+    PLUGIN_TOOL
+    opt
 )
