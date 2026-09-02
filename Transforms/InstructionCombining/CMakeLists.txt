@@ -1,4 +1,4 @@
-add_llvm_library(LLVMInstructionCombining MODULE BUILDTREE_ONLY
+add_llvm_library(OurIC MODULE BUILDTREE_ONLY
         InstructionCombining.cpp
 
         PLUGIN_TOOL
