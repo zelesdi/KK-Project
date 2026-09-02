@@ -55,7 +55,7 @@ To enable LLVM headers and autocomplete in CLion, set the `LLVM_SOURCE_DIR` CMak
 cd path/to/llvm-project/build
 ```
 
-# DSE + DAE
+### DSE + DAE
 
 ```bash
 ./bin/clang \
@@ -72,7 +72,7 @@ cd path/to/llvm-project/build
   -S -o dse_dae.ll
 ```
 
-# IC
+### IC
 
 ```bash
 ./bin/clang \
@@ -92,7 +92,7 @@ cd path/to/llvm-project/build
   -S ic_tmp.ll -o ic.ll
 ```
 
-# SR
+### SR
 
 ```bash
 ./bin/clang \
