@@ -289,5 +289,5 @@ namespace {
 }
 
 char InstructionCombining::ID = 3;
-static RegisterPass<InstructionCombining> X("instruction-combining", "Simple Instruction Combining Pass"
+static RegisterPass<InstructionCombining> X("simple-ic", "Simple Instruction Combining Pass"
 " combines instructions to make simpler instructions", false, false);
