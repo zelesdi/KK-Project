@@ -69,7 +69,7 @@ int no_dead_store(int a)
 
 int g;
  
-void f() {
+void fg() {
     g = 5;
 }
 
