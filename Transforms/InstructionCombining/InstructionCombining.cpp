@@ -107,6 +107,17 @@ namespace {
         return nullptr;
 
       Value *X = InnerBinOp->getOperand(0);
+      Type *Ty = BinOp->getType();
+      unsigned BitWidth = Ty->getScalarSizeInBits();
+
+      APInt V1 = Const1->getValue().zext(BitWidth + 1);
+      APInt V2 = Const2->getValue().zext(BitWidth + 1);
+      APInt Sum = V1 + V2;
+
+      if (Sum.uge(BitWidth))
+      {
+        return ConstantInt::get(Ty, 0);
+      }
 
       IRBuilder<> Builder(BinOp);
       Value *SumShift = Builder.CreateAdd(Const1, Const2); // folds at compile time
