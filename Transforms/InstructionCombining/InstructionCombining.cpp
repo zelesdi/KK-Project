@@ -202,51 +202,41 @@ namespace {
       return Builder.CreateAdd(X, FoldedConst);
     }
 
-    bool visit(Instruction *I,Value *&ReplacemantOut)
+    bool visit(Instruction *I, Value *&Replacement)
     {
-      ReplacemantOut = nullptr;
-
-      if (OpCanonicalization(I))
-      {
-        return true;
-      }
-      if (Value *r = SubToAddCanonicalization(I))
-      {
-        ReplacemantOut = r;
-        return true;
-      }
-      if (Value *r = MultiplyToShiftStrengthreduction(I))
-      {
-        ReplacemantOut = r;
-        return true;
-      }
-      if (Value *r = NestedShiftFolding(I))
-      {
-        ReplacemantOut = r;
-        return true;
-      }
-      if (Value *r = ShiftBitwiseReassociation(I))
-      {
-        ReplacemantOut = r;
-        return true;
-      }
-      if (Value *r = ConstantAddReassociation(I))
-      {
-        ReplacemantOut = r;
-        return true;
-      }
-      return false;
-    }
-
-    void addInstructions(Instruction *I, std::vector<Instruction*> &List)
-    {
-      for (User *U : I->users())
-      {
-        if (auto *UI = dyn_cast<Instruction>(U))
+        Replacement = nullptr;
+    
+        if (Value *r = SubToAddCanonicalization(I))
         {
-          List.push_back(UI);
+            Replacement = r;
+            return true;
         }
-      }
+    
+        if (Value *r = MultiplyToShiftStrengthreduction(I))
+        {
+            Replacement = r;
+            return true;
+        }
+    
+        if (Value *r = NestedShiftFolding(I))
+        {
+            Replacement = r;
+            return true;
+        }
+    
+        if (Value *r = ShiftBitwiseReassociation(I))
+        {
+            Replacement = r;
+            return true;
+        }
+    
+        if (Value *r = ConstantAddReassociation(I))
+        {
+            Replacement = r;
+            return true;
+        }
+    
+        return false;
     }
 
     bool runOnFunction(Function &F) override {
@@ -264,6 +254,12 @@ namespace {
         if (Erase.find(I) != Erase.end())
           continue; // already dead, skip
 
+        if (OpCanonicalization(I))
+        {
+            Changed = true;
+            continue;
+        }
+        
         Value *Replacement = nullptr;
         if (!visit(I, Replacement))
           continue; // no rule matched
