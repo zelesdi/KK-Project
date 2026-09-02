@@ -53,19 +53,57 @@ To enable LLVM headers and autocomplete in CLion, set the `LLVM_SOURCE_DIR` CMak
 
 ```bash
 cd path/to/llvm-project/build
+```
 
-./bin/clang -S -emit-llvm -O0 -Xclang -disable-O0-optnone example.c -o example.ll
+# DSE + DAE
+
+```bash
+./bin/clang \
+  -S -emit-llvm -O0 \
+  -Xclang -disable-O0-optnone \
+  DSE_DAE_example.c -o dse_dae_tmp.ll
 
 ./bin/opt \
-  -load ./build/lib/OurDSE.so \
-  -load ./build/lib/OurDAE.so \
-  -load ./build/lib/LLVMInstructionCombining.so \
-  -load ./build/lib/LLVMStrengthReduction.so \
+  -load ./lib/OurDSE.so \
+  -load ./lib/OurDAE.so \
   -enable-new-pm=0 \
-  -simple-dse \
-  -simple-dae \
-  -instruction-combining \
-  -strength-reduction \
-  example.ll \
-  -S -o output.ll
+  -simple-dse -simple-dae \
+  dse_dae_tmp.ll \
+  -S -o dse_dae.ll
+```
+
+# IC
+
+```bash
+./bin/clang \
+  -S -emit-llvm -O0 \
+  -Xclang -disable-O0-optnone \
+  IC_example.cpp -o ic_tmp.ll
+
+./bin/opt \
+  -load ./lib/OurIC.so \
+  -enable-new-pm=0 \
+  -simple-ic \
+  ic_tmp.ll \
+  -S -o ic.ll
+
+./bin/opt \
+  -passes=mem2reg \
+  -S ic_tmp.ll -o ic.ll
+```
+
+# SR
+
+```bash
+./bin/clang \
+  -S -emit-llvm -O0 \
+  -Xclang -disable-O0-optnone \
+  SR_example.c -o sr_tmp.ll
+
+./bin/opt \
+  -load ./lib/OurSR.so \
+  -enable-new-pm=0 \
+  -simple-sr \
+  sr_tmp.ll \
+  -S -o sr.ll
 ```
