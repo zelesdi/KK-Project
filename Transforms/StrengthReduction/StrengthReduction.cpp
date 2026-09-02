@@ -224,6 +224,6 @@ struct StrengthReduction : public FunctionPass {
 };
 
 char StrengthReduction::ID = 0;
-static RegisterPass<StrengthReduction> X("our-s-r", "Strength Reduction Pass");
+static RegisterPass<StrengthReduction> X("simple-sr", "Strength Reduction Pass");
 
 }  // end anonymous namespace
