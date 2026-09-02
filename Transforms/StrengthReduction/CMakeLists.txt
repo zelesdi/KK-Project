@@ -1,4 +1,4 @@
-add_llvm_library(LLVMStrengthReduction MODULE BUILDTREE_ONLY
+add_llvm_library(OurSR MODULE BUILDTREE_ONLY
         StrengthReduction.cpp
 
         PLUGIN_TOOL
