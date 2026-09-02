@@ -80,6 +80,13 @@ private:
         return false;
     }
 
+    static bool isLocal(const MemoryLocation &Loc){
+        if(Loc.Ptr == nullptr)
+            return false;
+        const Value *Base = getUnderlyingObject(Loc.Ptr);
+        return isa<AllocaInst>(Base);
+    }
+
     void computeCrossBlockLiveness(Function &F, AliasAnalysis &AA){
         vector<BasicBlock *> WorkList;
         DenseSet<BasicBlock *> InWorkList;
@@ -231,6 +238,9 @@ bool eliminateDeadStores(Function &F, AliasAnalysis &AA){
 
             if (!BlockAllLive){
                 for (auto &Entry : LastStores){
+                    if(!isLocal(Entry.first)){
+                        continue;
+                    }
                     if (!mayAliasAny(Entry.first, BlockLiveOut, AA)){
                         ToRemove.push_back(Entry.second);
                     }
